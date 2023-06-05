@@ -43,7 +43,7 @@ const fetchDataAndStore = async () => {
             WeatherData: weatherData
         });
         await indegoStation.save();
-        
+
         // Make a POST request to the external API
         const response = await axios.post('http://localhost:3000/api/v1/indego-data-fetch-and-store-it-db', {
             // Add required request payload here
@@ -98,39 +98,40 @@ app.get('/api/v1/stations', async (req, res) => {
     Get snapshot of one station at a specific time  
    ================= * ======================  */
 
- 
+
 app.get('/api/v1/stations/:kioskId', async (req, res) => {
     const kioskId = req.params.kioskId;
     const requestedTime = new Date().toISOString();
-  
+
     try {
-      const snapshot = await IndegoStation.findOne({
-        timestamp: { $lte: requestedTime },
-        'IndegoData.features.properties.kioskId': kioskId,
-      }).sort('timestamp');
-      console.log(snapshot);   //  'station.features.properties.kioskId': kioskId,
-  
-      if (!snapshot) {
-        res.status(404).json({ message: 'Data not found' });
-        return;
-      }
-  
-      
-  
-      // Find the specific station in the snapshot data
-      // res.json(snapshot);
-      //const stationData = snapshot.data.features.find((feature) => feature.properties.kioskId === kioskId);
-  
-      res.status(200).json({
-        at: snapshot.timestamp,
-        station: snapshot.IndegoData,
-        weather: snapshot.WeatherData,
-      });
+        // Fetch the data from the API or the database
+        const data = await IndegoStation.findOne({ timestamp: { $lte: requestedTime } }).sort('timestamp');
+
+        // res.json(data.IndegoData.features);
+
+        if (!data) {
+            res.status(404).json({ message: 'Data not found' });
+            return;
+        }
+
+        // Filter the data to include only the features with kioskId 3005
+        const filteredFeatures = data.IndegoData.features.filter(feature => feature.properties.kioskId === 3006);
+
+        // Create a new object with the filtered features 
+        //  ...data.IndegoData, ...data,
+        const filteredData = {
+            IndegoData: {
+                features: filteredFeatures
+            }
+        };
+
+        // Send the filtered data as the API response
+        res.json(filteredData);
     } catch (error) {
         console.error('Error retrieving snapshot:', error);
         res.status(500).json({ message: 'Error retrieving snapshot' });
-      }
-    });
+    }
+});
 
 
 // Start the server
